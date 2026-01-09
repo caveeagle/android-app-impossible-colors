@@ -11,19 +11,11 @@ from kivy.metrics import dp
 import math
 
 # ===== КОНСТАНТЫ =====
-CIRCLE_RADIUS_RATIO = 0.25  # (0.20)   0.35  >x>  0.05
+CIRCLE_RADIUS_RATIO = 0.25  # 0.35 > x > 0.05
 
-COLOR_TOP = (1, 1, 0)
-COLOR_BOTTOM = (0, 0, 1)
+COLOR_TOP = (1, 1, 0)     # жёлтый
+COLOR_BOTTOM = (0, 0, 1)  # синий
 BG_COLOR = (0, 0, 0)
-
-
-def add_colors(c1, c2):
-    return (
-        min(c1[0] + c2[0], 1.0),
-        min(c1[1] + c2[1], 1.0),
-        min(c1[2] + c2[2], 1.0),
-    )
 
 
 class TwoCirclesWidget(Widget):
@@ -43,9 +35,6 @@ class TwoCirclesWidget(Widget):
             Color(*COLOR_BOTTOM)
             self.circle_bottom = Ellipse()
 
-            self.intersection_color = Color(0, 0, 0, 0)
-            self.circle_intersection = Ellipse()
-
         self.bind(size=self.update, pos=self.update)
 
     def update(self, *args):
@@ -61,6 +50,7 @@ class TwoCirclesWidget(Widget):
         top_center = (cx, cy + self.offset)
         bottom_center = (cx, cy - self.offset)
 
+        # фон
         self.bg.pos = self.pos
         self.bg.size = self.size
 
@@ -72,30 +62,13 @@ class TwoCirclesWidget(Widget):
             top_center[0] - radius,
             top_center[1] - radius
         )
+
         self.circle_bottom.pos = (
             bottom_center[0] - radius,
             bottom_center[1] - radius
         )
 
-        dist = math.dist(top_center, bottom_center)
-
-        if dist < 2 * radius:
-            overlap_radius = (2 * radius - dist) / 2
-            overlap_center_y = (top_center[1] + bottom_center[1]) / 2
-
-            self.circle_intersection.size = (
-                overlap_radius * 2,
-                overlap_radius * 2
-            )
-            self.circle_intersection.pos = (
-                cx - overlap_radius,
-                overlap_center_y - overlap_radius
-            )
-
-            r, g, b = add_colors(COLOR_TOP, COLOR_BOTTOM)
-            self.intersection_color.rgba = (r, g, b, 1)
-        else:
-            self.intersection_color.rgba = (0, 0, 0, 0)
+    # ===== ОБРАБОТКА ЖЕСТА =====
 
     def on_touch_down(self, touch):
         self.touches[touch.id] = touch.pos
@@ -141,21 +114,18 @@ class MainLayout(FloatLayout):
         self.add_widget(btn_exit)
 
     def open_menu(self, *args):
-        
         layout = BoxLayout(
             orientation="vertical",
             spacing=dp(10),
             padding=dp(12)
-        )        
-        
-        layout = BoxLayout(orientation="vertical", spacing=10, padding=10)
+        )
 
         btn_settings = Button(
             text="Settings",
             size_hint_y=None,
             height=dp(56),
             font_size=dp(16)
-        )        
+        )
         btn_settings.bind(on_release=self.close_popup)
 
         btn_about = Button(
@@ -173,7 +143,7 @@ class MainLayout(FloatLayout):
             title="Menu",
             content=layout,
             size_hint=(None, None),
-            size=(300, 200)
+            size=(dp(300), dp(200))
         )
         self.menu_popup.open()
 
@@ -196,18 +166,17 @@ class MainLayout(FloatLayout):
             valign="middle",
             text_size=(dp(360), None)
         )
-    
+
         label.bind(
             texture_size=lambda inst, size: setattr(inst, "height", size[1])
         )
-    
+
         popup = Popup(
             title="About",
             content=label,
             size_hint=(None, None),
             size=(dp(420), dp(300))
         )
-    
         popup.open()
 
     def exit_app(self, *args):
