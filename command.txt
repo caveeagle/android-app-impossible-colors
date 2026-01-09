@@ -1,1 +1,4 @@
 buildozer -v android debug
+
+buildozer android clean
+buildozer android debug

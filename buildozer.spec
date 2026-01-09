@@ -1,10 +1,10 @@
 [app]
 
-title = ImpossibleColors
+title = Impossible Colors
 
-package.name = impossible_colors
+package.name = impossiblecolors
 
-package.domain = org.example
+package.domain = org.caveeagle
 
 source.dir = .
 

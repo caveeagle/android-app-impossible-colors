@@ -1,19 +1,23 @@
 from kivy.app import App
 from kivy.uix.widget import Widget
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.label import Label
+from kivy.uix.popup import Popup
 from kivy.graphics import Color, Ellipse, Rectangle
 from kivy.core.window import Window
 import math
 
 # ===== КОНСТАНТЫ =====
-CIRCLE_RADIUS_RATIO = 0.05   # относительный радиус от ширины экрана
+CIRCLE_RADIUS_RATIO = 0.45
 
-COLOR_TOP = (1, 0, 0)        # красный
-COLOR_BOTTOM = (0, 0, 1)     # синий
-BG_COLOR = (0, 0, 0)         # чёрный
+COLOR_TOP = (1, 1, 0)
+COLOR_BOTTOM = (0, 0, 1)
+BG_COLOR = (0, 0, 0)
 
 
 def add_colors(c1, c2):
-    """Покомпонентное сложение RGB с ограничением"""
     return (
         min(c1[0] + c2[0], 1.0),
         min(c1[1] + c2[1], 1.0),
@@ -26,7 +30,7 @@ class TwoCirclesWidget(Widget):
         super().__init__(**kwargs)
 
         self.touches = {}
-        self.offset = None  # будет инициализирован после получения размеров
+        self.offset = None
 
         with self.canvas:
             Color(*BG_COLOR)
@@ -46,25 +50,19 @@ class TwoCirclesWidget(Widget):
     def update(self, *args):
         w, h = self.size
         cx, cy = w / 2, h / 2
-
         radius = CIRCLE_RADIUS_RATIO * w
 
-        # начальное положение:
-        # расстояние между центрами = половина высоты экрана
         if self.offset is None:
             self.offset = h / 4
 
-        # ограничение смещения
         self.offset = max(0, min(self.offset, h / 2))
 
         top_center = (cx, cy + self.offset)
         bottom_center = (cx, cy - self.offset)
 
-        # фон
         self.bg.pos = self.pos
         self.bg.size = self.size
 
-        # основные круги
         size = (radius * 2, radius * 2)
         self.circle_top.size = size
         self.circle_bottom.size = size
@@ -78,10 +76,8 @@ class TwoCirclesWidget(Widget):
             bottom_center[1] - radius
         )
 
-        # расстояние между центрами
         dist = math.dist(top_center, bottom_center)
 
-        # ===== ПЕРЕСЕЧЕНИЕ =====
         if dist < 2 * radius:
             overlap_radius = (2 * radius - dist) / 2
             overlap_center_y = (top_center[1] + bottom_center[1]) / 2
@@ -97,11 +93,8 @@ class TwoCirclesWidget(Widget):
 
             r, g, b = add_colors(COLOR_TOP, COLOR_BOTTOM)
             self.intersection_color.rgba = (r, g, b, 1)
-
         else:
             self.intersection_color.rgba = (0, 0, 0, 0)
-
-    # ===== ОБРАБОТКА ЖЕСТА =====
 
     def on_touch_down(self, touch):
         self.touches[touch.id] = touch.pos
@@ -119,10 +112,82 @@ class TwoCirclesWidget(Widget):
         self.touches.pop(touch.id, None)
 
 
+class MainLayout(FloatLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.circles = TwoCirclesWidget()
+        self.add_widget(self.circles)
+
+        # кнопка Menu
+        btn_menu = Button(
+            text="Menu",
+            size_hint=(None, None),
+            size=(80, 40),
+            pos_hint={"x": 0, "top": 1}
+        )
+        btn_menu.bind(on_release=self.open_menu)
+        self.add_widget(btn_menu)
+
+        # кнопка Exit
+        btn_exit = Button(
+            text="Exit",
+            size_hint=(None, None),
+            size=(80, 40),
+            pos_hint={"right": 1, "top": 1}
+        )
+        btn_exit.bind(on_release=self.exit_app)
+        self.add_widget(btn_exit)
+
+    def open_menu(self, *args):
+        layout = BoxLayout(orientation="vertical", spacing=10, padding=10)
+
+        btn_settings = Button(text="Settings", size_hint_y=None, height=40)
+        btn_settings.bind(on_release=self.close_popup)
+
+        btn_about = Button(text="About", size_hint_y=None, height=40)
+        btn_about.bind(on_release=self.show_about)
+
+        layout.add_widget(btn_settings)
+        layout.add_widget(btn_about)
+
+        self.menu_popup = Popup(
+            title="Menu",
+            content=layout,
+            size_hint=(None, None),
+            size=(300, 200)
+        )
+        self.menu_popup.open()
+
+    def close_popup(self, *args):
+        if hasattr(self, "menu_popup"):
+            self.menu_popup.dismiss()
+
+    def show_about(self, *args):
+        if hasattr(self, "menu_popup"):
+            self.menu_popup.dismiss()
+
+        text = (
+            "Impossible Colors\n\n"
+            "Author: caveeagle\n"
+        )
+
+        popup = Popup(
+            title="About",
+            content=Label(text=text),
+            size_hint=(None, None),
+            size=(400, 250)
+        )
+        popup.open()
+
+    def exit_app(self, *args):
+        App.get_running_app().stop()
+
+
 class MyApp(App):
     def build(self):
         Window.clearcolor = (0, 0, 0, 1)
-        return TwoCirclesWidget()
+        return MainLayout()
 
 
 MyApp().run()
