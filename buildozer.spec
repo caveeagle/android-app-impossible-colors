@@ -16,7 +16,7 @@ orientation = portrait
 
 fullscreen = 1
 
-version = 1.1.2
+version = 1.1.4
 
 author = caveeagle
 

@@ -22,8 +22,9 @@ class TwoCirclesWidget(Widget):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.touches = {}
         self.offset = None
+        self.start_touch_y = None
+        self.start_offset = None
 
         with self.canvas:
             Color(*BG_COLOR)
@@ -68,22 +69,24 @@ class TwoCirclesWidget(Widget):
             bottom_center[1] - radius
         )
 
-    # ===== ОБРАБОТКА ЖЕСТА =====
+    # ===== ЖЕСТ ОДНИМ ПАЛЬЦЕМ =====
 
     def on_touch_down(self, touch):
-        self.touches[touch.id] = touch.pos
+        self.start_touch_y = touch.y
+        self.start_offset = self.offset
+        return True
 
     def on_touch_move(self, touch):
-        if touch.id in self.touches:
-            self.touches[touch.id] = touch.pos
+        if self.start_touch_y is None:
+            return
 
-        if len(self.touches) == 2:
-            p1, p2 = self.touches.values()
-            self.offset = math.dist(p1, p2) / 2
-            self.update()
+        dy = touch.y - self.start_touch_y
+        self.offset = self.start_offset + dy
+        self.update()
 
     def on_touch_up(self, touch):
-        self.touches.pop(touch.id, None)
+        self.start_touch_y = None
+        self.start_offset = None
 
 
 class MainLayout(FloatLayout):
@@ -93,7 +96,6 @@ class MainLayout(FloatLayout):
         self.circles = TwoCirclesWidget()
         self.add_widget(self.circles)
 
-        # кнопка Menu
         btn_menu = Button(
             text="Menu",
             size_hint=(None, None),
@@ -103,7 +105,6 @@ class MainLayout(FloatLayout):
         btn_menu.bind(on_release=self.open_menu)
         self.add_widget(btn_menu)
 
-        # кнопка Exit
         btn_exit = Button(
             text="Exit",
             size_hint=(None, None),
