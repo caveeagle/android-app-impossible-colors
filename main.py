@@ -7,10 +7,11 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.graphics import Color, Ellipse, Rectangle
 from kivy.core.window import Window
+from kivy.metrics import dp
 import math
 
 # ===== КОНСТАНТЫ =====
-CIRCLE_RADIUS_RATIO = 0.45
+CIRCLE_RADIUS_RATIO = 0.25  # (0.20)   0.35  >x>  0.05
 
 COLOR_TOP = (1, 1, 0)
 COLOR_BOTTOM = (0, 0, 1)
@@ -123,7 +124,7 @@ class MainLayout(FloatLayout):
         btn_menu = Button(
             text="Menu",
             size_hint=(None, None),
-            size=(80, 40),
+            size=(dp(120), dp(56)),
             pos_hint={"x": 0, "top": 1}
         )
         btn_menu.bind(on_release=self.open_menu)
@@ -133,19 +134,36 @@ class MainLayout(FloatLayout):
         btn_exit = Button(
             text="Exit",
             size_hint=(None, None),
-            size=(80, 40),
+            size=(dp(120), dp(56)),
             pos_hint={"right": 1, "top": 1}
         )
         btn_exit.bind(on_release=self.exit_app)
         self.add_widget(btn_exit)
 
     def open_menu(self, *args):
+        
+        layout = BoxLayout(
+            orientation="vertical",
+            spacing=dp(10),
+            padding=dp(12)
+        )        
+        
         layout = BoxLayout(orientation="vertical", spacing=10, padding=10)
 
-        btn_settings = Button(text="Settings", size_hint_y=None, height=40)
+        btn_settings = Button(
+            text="Settings",
+            size_hint_y=None,
+            height=dp(56),
+            font_size=dp(16)
+        )        
         btn_settings.bind(on_release=self.close_popup)
 
-        btn_about = Button(text="About", size_hint_y=None, height=40)
+        btn_about = Button(
+            text="About",
+            size_hint_y=None,
+            height=dp(56),
+            font_size=dp(16)
+        )
         btn_about.bind(on_release=self.show_about)
 
         layout.add_widget(btn_settings)
@@ -172,12 +190,24 @@ class MainLayout(FloatLayout):
             "Author: caveeagle\n"
         )
 
+        label = Label(
+            text=text,
+            halign="center",
+            valign="middle",
+            text_size=(dp(360), None)
+        )
+    
+        label.bind(
+            texture_size=lambda inst, size: setattr(inst, "height", size[1])
+        )
+    
         popup = Popup(
             title="About",
-            content=Label(text=text),
+            content=label,
             size_hint=(None, None),
-            size=(400, 250)
+            size=(dp(420), dp(300))
         )
+    
         popup.open()
 
     def exit_app(self, *args):
