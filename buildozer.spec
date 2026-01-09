@@ -16,7 +16,7 @@ orientation = portrait
 
 fullscreen = 1
 
-version = 1.0
+version = 1.0.1
 
 author = caveeagle
 
@@ -30,7 +30,7 @@ android.archs = arm64-v8a
 
 source.main = main.py
 
-#icon.filename = %(source.dir)s/icon.png
+icon.filename = icon.png
 
 osx.python_version = 3
 
