@@ -5,18 +5,15 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
+from kivy.uix.togglebutton import ToggleButton
 from kivy.graphics import Color, Ellipse, Rectangle
 from kivy.core.window import Window
-from kivy.metrics import dp 
+from kivy.metrics import dp
 from kivy.resources import resource_find
-
 import math
 
 # ===== КОНСТАНТЫ =====
-CIRCLE_RADIUS_RATIO = 0.25  # 0.35 > x > 0.05
-
-COLOR_TOP = (1, 1, 0)     # жёлтый
-COLOR_BOTTOM = (0, 0, 1)  # синий
+CIRCLE_RADIUS_RATIO = 0.25   # 0.35 > x > 0.05
 BG_COLOR = (0, 0, 0)
 
 
@@ -28,17 +25,29 @@ class TwoCirclesWidget(Widget):
         self.start_touch_y = None
         self.start_offset = None
 
+        self.color_scheme = "yb"  # yb | rg
+
         with self.canvas:
             Color(*BG_COLOR)
             self.bg = Rectangle()
 
-            Color(*COLOR_TOP)
+            self.color_top_instr = Color(1, 1, 0)   # yellow
             self.circle_top = Ellipse()
 
-            Color(*COLOR_BOTTOM)
+            self.color_bottom_instr = Color(0, 0, 1)  # blue
             self.circle_bottom = Ellipse()
 
         self.bind(size=self.update, pos=self.update)
+
+    def set_color_scheme(self, scheme):
+        if scheme == "yb":
+            self.color_top_instr.rgb = (1, 1, 0)
+            self.color_bottom_instr.rgb = (0, 0, 1)
+        elif scheme == "rg":
+            self.color_top_instr.rgb = (1, 0, 0)
+            self.color_bottom_instr.rgb = (0, 1, 0)
+
+        self.color_scheme = scheme
 
     def update(self, *args):
         w, h = self.size
@@ -53,7 +62,6 @@ class TwoCirclesWidget(Widget):
         top_center = (cx, cy + self.offset)
         bottom_center = (cx, cy - self.offset)
 
-        # фон
         self.bg.pos = self.pos
         self.bg.size = self.size
 
@@ -65,7 +73,6 @@ class TwoCirclesWidget(Widget):
             top_center[0] - radius,
             top_center[1] - radius
         )
-
         self.circle_bottom.pos = (
             bottom_center[0] - radius,
             bottom_center[1] - radius
@@ -123,6 +130,33 @@ class MainLayout(FloatLayout):
             padding=dp(12)
         )
 
+        # --- Цветовые схемы ---
+        btn_yb = ToggleButton(
+            text="Yellow / Blue",
+            group="colors",
+            state="down" if self.circles.color_scheme == "yb" else "normal",
+            size_hint_y=None,
+            height=dp(48)
+        )
+        btn_yb.bind(
+            on_release=lambda *_: self.circles.set_color_scheme("yb")
+        )
+
+        btn_rg = ToggleButton(
+            text="Red / Green",
+            group="colors",
+            state="down" if self.circles.color_scheme == "rg" else "normal",
+            size_hint_y=None,
+            height=dp(48)
+        )
+        btn_rg.bind(
+            on_release=lambda *_: self.circles.set_color_scheme("rg")
+        )
+
+        layout.add_widget(btn_yb)
+        layout.add_widget(btn_rg)
+
+        # --- Остальные пункты ---
         btn_settings = Button(
             text="Settings",
             size_hint_y=None,
@@ -146,7 +180,7 @@ class MainLayout(FloatLayout):
             title="Menu",
             content=layout,
             size_hint=(None, None),
-            size=(dp(300), dp(200))
+            size=(dp(320), dp(340))
         )
         self.menu_popup.open()
 
