@@ -7,7 +7,9 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.graphics import Color, Ellipse, Rectangle
 from kivy.core.window import Window
-from kivy.metrics import dp
+from kivy.metrics import dp 
+from kivy.resources import resource_find
+
 import math
 
 # ===== КОНСТАНТЫ =====
@@ -156,10 +158,12 @@ class MainLayout(FloatLayout):
         if hasattr(self, "menu_popup"):
             self.menu_popup.dismiss()
 
-        text = (
-            "Impossible Colors\n\n"
-            "Author: caveeagle\n"
-        )
+        path = resource_find("about.txt")
+        if path:
+            with open(path, "r", encoding="utf-8") as f:
+                text = f.read()
+        else:
+            text = "About file not found"
 
         label = Label(
             text=text,
