@@ -1,0 +1,5 @@
+[
+  {"id":"yb","title":"Yellow / Blue","top":[255,255,0],"bottom":[0,0,255]},
+  {"id":"rg","title":"Red / Green","top":[255,0,0],"bottom":[0,255,0]},
+  {"id":"rc","title":"Red / Cyan","top":[255,0,0],"bottom":[0,255,255]}
+]

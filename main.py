@@ -6,19 +6,89 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.scrollview import ScrollView
 from kivy.graphics import Color, Ellipse, Rectangle
 from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.resources import resource_find
 from kivy.config import ConfigParser
 from kivy.uix.image import Image
+from kivy.clock import Clock
 
 import os
-import math
+import json
 
 # ===== КОНСТАНТЫ =====
 CIRCLE_RADIUS_RATIO = 0.25
 BG_COLOR = (0, 0, 0)
+
+
+def rgb255(r, g, b):
+    return (r / 255.0, g / 255.0, b / 255.0)
+
+
+def read_text_resource(filename, fallback_text):
+    path = resource_find(filename)
+    if not path:
+        return fallback_text
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def load_color_schemes_from_file(filename="config.json"):
+    """
+    Ожидаемый формат JSON (пример):
+    [
+      {"id":"yb","title":"Yellow / Blue","top":[255,255,0],"bottom":[0,0,255]},
+      {"id":"rg","title":"Red / Green","top":[255,0,0],"bottom":[0,255,0]},
+      {"id":"rc","title":"Red / Cyan","top":[255,0,0],"bottom":[0,255,255]}
+    ]
+    """
+    path = resource_find(filename)
+    if not path:
+        return None, None
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    schemes = {}
+    order = []
+    for item in data:
+        sid = item["id"]
+        title = item["title"]
+        top = item["top"]
+        bottom = item["bottom"]
+
+        schemes[sid] = {
+            "title": title,
+            "top_rgb": rgb255(top[0], top[1], top[2]),
+            "bottom_rgb": rgb255(bottom[0], bottom[1], bottom[2]),
+        }
+        order.append(sid)
+
+    return schemes, order
+
+
+def default_color_schemes():
+    schemes = {
+        "yb": {
+            "title": "Yellow / Blue",
+            "top_rgb": rgb255(255, 255, 0),
+            "bottom_rgb": rgb255(0, 0, 255),
+        },
+        "rg": {
+            "title": "Red / Green",
+            "top_rgb": rgb255(255, 0, 0),
+            "bottom_rgb": rgb255(0, 255, 0),
+        },
+        "rc": {
+            "title": "Red / Cyan",
+            "top_rgb": rgb255(255, 0, 0),
+            "bottom_rgb": rgb255(0, 255, 255),
+        },
+    }
+    order = ["yb", "rg", "rc"]
+    return schemes, order
 
 
 # ==================== TWO CIRCLES ====================
@@ -31,20 +101,19 @@ class TwoCirclesWidget(Widget):
         self.start_touch_y = None
         self.start_offset = None
 
-        self.color_scheme = "yb"  # yb | rg
+        self.color_scheme = "yb"  # id
 
         with self.canvas:
             Color(*BG_COLOR)
             self.bg = Rectangle()
 
-            self.color_top_instr = Color(1, 1, 0)   # yellow
+            self.color_top_instr = Color(1, 1, 0)      # будет перезаписано схемой
             self.circle_top = Ellipse()
 
-            self.color_bottom_instr = Color(0, 0, 1)  # blue
+            self.color_bottom_instr = Color(0, 0, 1)   # будет перезаписано схемой
             self.circle_bottom = Ellipse()
 
         self.bind(size=self.update, pos=self.update)
-
         self.load_state()
 
     # ---------- STATE ----------
@@ -53,6 +122,9 @@ class TwoCirclesWidget(Widget):
         app = App.get_running_app()
 
         scheme = app.config.get("color", "scheme")
+        if scheme not in app.color_schemes:
+            scheme = app.color_schemes_order[0]
+
         self.set_color_scheme(scheme)
 
         saved_offset = float(app.config.get("circles", "offset"))
@@ -66,18 +138,18 @@ class TwoCirclesWidget(Widget):
 
     # ---------- COLORS ----------
 
-    def set_color_scheme(self, scheme):
-        if scheme == "yb":
-            self.color_top_instr.rgb = (1, 1, 0)
-            self.color_bottom_instr.rgb = (0, 0, 1)
-        elif scheme == "rg":
-            self.color_top_instr.rgb = (1, 0, 0)
-            self.color_bottom_instr.rgb = (0, 1, 0)
-
-        self.color_scheme = scheme
-
+    def set_color_scheme(self, scheme_id):
         app = App.get_running_app()
-        app.config.set("color", "scheme", scheme)
+        if scheme_id not in app.color_schemes:
+            scheme_id = app.color_schemes_order[0]
+
+        scheme = app.color_schemes[scheme_id]
+
+        self.color_top_instr.rgb = scheme["top_rgb"]
+        self.color_bottom_instr.rgb = scheme["bottom_rgb"]
+        self.color_scheme = scheme_id
+
+        app.config.set("color", "scheme", scheme_id)
         app.config.write()
 
     # ---------- DRAW ----------
@@ -111,7 +183,7 @@ class TwoCirclesWidget(Widget):
             bottom_center[1] - radius
         )
 
-    # ---------- GESTURE ----------
+    # ---------- GESTURE (ONE FINGER) ----------
 
     def on_touch_down(self, touch):
         self.start_touch_y = touch.y
@@ -121,7 +193,6 @@ class TwoCirclesWidget(Widget):
     def on_touch_move(self, touch):
         if self.start_touch_y is None:
             return
-
         dy = touch.y - self.start_touch_y
         self.offset = self.start_offset + dy
         self.update()
@@ -162,14 +233,15 @@ class MainLayout(FloatLayout):
             source="logo.png",
             size_hint=(None, None),
             size=(dp(56), dp(56)),
-            pos_hint={
-                "center_x": 0.5,
-                "top": 1
-            },
+            pos_hint={"center_x": 0.5, "top": 1},
             allow_stretch=False,
             keep_ratio=True
         )
         
+        logo.bind(
+            size=lambda inst, *_: setattr(inst, "x", (content.width - inst.width) / 2)
+        )
+                
         self.add_widget(logo)
 
     # ---------- MENU ----------
@@ -181,26 +253,21 @@ class MainLayout(FloatLayout):
             padding=dp(12)
         )
 
-        btn_yb = ToggleButton(
-            text="Yellow / Blue",
-            group="colors",
-            state="down" if self.circles.color_scheme == "yb" else "normal",
+        btn_colors = Button(
+            text="Colors",
             size_hint_y=None,
-            height=dp(48)
+            height=dp(56),
+            font_size=dp(16)
         )
-        btn_yb.bind(on_release=lambda *_: self.circles.set_color_scheme("yb"))
+        btn_colors.bind(on_release=self.open_colors_submenu)
 
-        btn_rg = ToggleButton(
-            text="Red / Green",
-            group="colors",
-            state="down" if self.circles.color_scheme == "rg" else "normal",
+        btn_info = Button(
+            text="Info",
             size_hint_y=None,
-            height=dp(48)
+            height=dp(56),
+            font_size=dp(16)
         )
-        btn_rg.bind(on_release=lambda *_: self.circles.set_color_scheme("rg"))
-
-        layout.add_widget(btn_yb)
-        layout.add_widget(btn_rg)
+        btn_info.bind(on_release=self.show_info)
 
         btn_about = Button(
             text="About",
@@ -210,44 +277,131 @@ class MainLayout(FloatLayout):
         )
         btn_about.bind(on_release=self.show_about)
 
+        layout.add_widget(btn_colors)
+        layout.add_widget(btn_info)
         layout.add_widget(btn_about)
 
         self.menu_popup = Popup(
             title="Menu",
             content=layout,
             size_hint=(None, None),
-            size=(dp(320), dp(300))
+            size=(dp(320), dp(320))
         )
         self.menu_popup.open()
+
+    def open_colors_submenu(self, *args):
+        if hasattr(self, "menu_popup"):
+            self.menu_popup.dismiss()
+
+        app = App.get_running_app()
+
+        layout = BoxLayout(
+            orientation="vertical",
+            spacing=dp(10),
+            padding=dp(12)
+        )
+
+        for scheme_id in app.color_schemes_order:
+            title = app.color_schemes[scheme_id]["title"]
+            btn = ToggleButton(
+                text=title,
+                group="colors",
+                state="down" if self.circles.color_scheme == scheme_id else "normal",
+                size_hint_y=None,
+                height=dp(52)
+            )
+            btn.bind(on_release=lambda _btn, sid=scheme_id: self.circles.set_color_scheme(sid))
+            layout.add_widget(btn)
+
+        self.colors_popup = Popup(
+            title="Colors",
+            content=layout,
+            size_hint=(None, None),
+            size=(dp(360), dp(320))
+        )
+        self.colors_popup.open()
 
     # ---------- ABOUT ----------
 
     def show_about(self, *args):
         if hasattr(self, "menu_popup"):
             self.menu_popup.dismiss()
-
-        path = resource_find("about.txt")
-        if path:
-            with open(path, "r", encoding="utf-8") as f:
-                text = f.read()
-        else:
-            text = "About file not found"
-
+    
+        text = read_text_resource("about.txt", "About file not found")
+    
+        scroll = ScrollView(do_scroll_x=False)
+    
+        content = BoxLayout(
+            orientation="vertical",
+            size_hint_y=None,
+            spacing=dp(12),
+            padding=dp(12)
+        )
+    
+        # ----- текст -----
         label = Label(
             text=text,
+            markup=True,
             halign="center",
-            valign="middle",
-            text_size=(dp(360), None)
+            valign="top",
+            size_hint_y=None
         )
-        label.bind(
-            texture_size=lambda inst, size: setattr(inst, "height", size[1])
+        label.bind(texture_size=lambda inst, size: setattr(inst, "height", size[1]))
+        content.add_widget(label)
+    
+        # ----- картинка внизу -----
+        logo = Image(
+            source="logo.png",
+            size_hint_y=None,
+            size=(dp(56), dp(56)),
+            allow_stretch=False,
+            keep_ratio=True
         )
-
+        content.add_widget(logo)
+    
+        # корректная высота контейнера
+        content.bind(minimum_height=content.setter("height"))
+    
+        scroll.add_widget(content)
+    
         Popup(
             title="About",
-            content=label,
-            size_hint=(None, None),
-            size=(dp(420), dp(300))
+            content=scroll,
+            size_hint=(0.98, 0.98),
+        ).open()  
+        
+    # ---------- INFO (SCROLL + MARKUP) ----------
+
+    def show_info(self, *args):
+        if hasattr(self, "menu_popup"):
+            self.menu_popup.dismiss()
+
+        # В файле можно выделять жирным так: [b]Заголовок[/b]
+        # Для этого здесь включён markup=True
+        text = read_text_resource("info.txt", "colors_info.txt not found")
+
+        scroll = ScrollView(do_scroll_x=False)
+        label = Label(
+            text=text,
+            markup=True,
+            halign="left",
+            valign="top",
+            size_hint_y=None
+        )
+
+        def _update_wrap(*_):
+            label.text_size = (max(0, scroll.width - dp(20)), None)
+
+        label.bind(texture_size=lambda inst, size: setattr(inst, "height", size[1]))
+        scroll.bind(width=_update_wrap)
+        _update_wrap()
+
+        scroll.add_widget(label)
+
+        Popup(
+            title="Info",
+            content=scroll,
+            size_hint=(0.95, 0.95),
         ).open()
 
     # ---------- EXIT ----------
@@ -266,7 +420,6 @@ class MyApp(App):
         self.config_path = os.path.join(self.user_data_dir, "app.ini")
         self.config.read(self.config_path)
 
-        # --- корректная инициализация ---
         if not self.config.has_section("color"):
             self.config.add_section("color")
         if not self.config.has_option("color", "scheme"):
@@ -277,10 +430,28 @@ class MyApp(App):
         if not self.config.has_option("circles", "offset"):
             self.config.set("circles", "offset", "0")
 
+        # --- загрузка цветовых схем из файла проекта ---
+        schemes, order = load_color_schemes_from_file("colors_config.json")
+        if not schemes:
+            schemes, order = default_color_schemes()
+
+        self.color_schemes = schemes
+        self.color_schemes_order = order
+
+        # --- валидация сохранённой схемы ---
+        saved_scheme = self.config.get("color", "scheme")
+        if saved_scheme not in self.color_schemes:
+            self.config.set("color", "scheme", self.color_schemes_order[0])
+
         self.config.write()
 
         Window.clearcolor = (0, 0, 0, 1)
+        
+        Clock.schedule_once(self.force_redraw, 0)
         return MainLayout()
 
-
+    def force_redraw(self, *args):
+        Window.dispatch("on_draw")
+        Window.canvas.ask_update()
+        
 MyApp().run()
