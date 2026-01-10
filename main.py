@@ -281,6 +281,16 @@ class MainLayout(FloatLayout):
         layout.add_widget(btn_info)
         layout.add_widget(btn_about)
 
+        btn_back = Button(
+            text="Back",
+            size_hint_y=None,
+            height=dp(48),
+            font_size=dp(16)
+        )
+        btn_back.bind(on_release=lambda *_: self.menu_popup.dismiss())
+        
+        layout.add_widget(btn_back)        
+        
         self.menu_popup = Popup(
             title="Menu",
             content=layout,
@@ -312,7 +322,18 @@ class MainLayout(FloatLayout):
             )
             btn.bind(on_release=lambda _btn, sid=scheme_id: self.circles.set_color_scheme(sid))
             layout.add_widget(btn)
-
+            #  End of cycle
+            
+        btn_back = Button(
+            text="Back",
+            size_hint_y=None,
+            height=dp(48),
+            font_size=dp(16)
+        )
+        btn_back.bind(on_release=lambda *_: self.colors_popup.dismiss())
+        
+        layout.add_widget(btn_back)        
+        
         self.colors_popup = Popup(
             title="Colors",
             content=layout,
@@ -431,7 +452,7 @@ class MyApp(App):
             self.config.set("circles", "offset", "0")
 
         # --- загрузка цветовых схем из файла проекта ---
-        schemes, order = load_color_schemes_from_file("colors_config.json")
+        schemes, order = load_color_schemes_from_file("config.json")
         if not schemes:
             schemes, order = default_color_schemes()
 

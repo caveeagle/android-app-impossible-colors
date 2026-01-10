@@ -1,5 +1,8 @@
 [
   {"id":"yb","title":"Yellow / Blue","top":[255,255,0],"bottom":[0,0,255]},
   {"id":"rg","title":"Red / Green","top":[255,0,0],"bottom":[0,255,0]},
-  {"id":"rc","title":"Red / Cyan","top":[255,0,0],"bottom":[0,255,255]}
+  {"id":"rc","title":"Red / Cyan","top":[255,0,0],"bottom":[0,255,255]},
+  {"id":"bw","title":"Blue / White","top":[0,0,255],"bottom":[255, 255, 200]},
+  {"id":"vw","title":"Violet / Yellow","top":[128, 0, 255],"bottom":[255, 255, 0]},
+  {"id":"mg","title":"Magenta / Green","top":[255,0,255],"bottom":[0,255,0]}
 ]
