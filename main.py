@@ -10,12 +10,17 @@ from kivy.graphics import Color, Ellipse, Rectangle
 from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.resources import resource_find
+from kivy.config import ConfigParser
+
+import os
 import math
 
 # ===== КОНСТАНТЫ =====
-CIRCLE_RADIUS_RATIO = 0.25   # 0.35 > x > 0.05
+CIRCLE_RADIUS_RATIO = 0.25
 BG_COLOR = (0, 0, 0)
 
+
+# ==================== TWO CIRCLES ====================
 
 class TwoCirclesWidget(Widget):
     def __init__(self, **kwargs):
@@ -39,6 +44,27 @@ class TwoCirclesWidget(Widget):
 
         self.bind(size=self.update, pos=self.update)
 
+        self.load_state()
+
+    # ---------- STATE ----------
+
+    def load_state(self):
+        app = App.get_running_app()
+
+        scheme = app.config.get("color", "scheme")
+        self.set_color_scheme(scheme)
+
+        saved_offset = float(app.config.get("circles", "offset"))
+        if saved_offset > 0:
+            self.offset = saved_offset
+
+    def save_offset(self):
+        app = App.get_running_app()
+        app.config.set("circles", "offset", str(self.offset))
+        app.config.write()
+
+    # ---------- COLORS ----------
+
     def set_color_scheme(self, scheme):
         if scheme == "yb":
             self.color_top_instr.rgb = (1, 1, 0)
@@ -48,6 +74,12 @@ class TwoCirclesWidget(Widget):
             self.color_bottom_instr.rgb = (0, 1, 0)
 
         self.color_scheme = scheme
+
+        app = App.get_running_app()
+        app.config.set("color", "scheme", scheme)
+        app.config.write()
+
+    # ---------- DRAW ----------
 
     def update(self, *args):
         w, h = self.size
@@ -78,7 +110,7 @@ class TwoCirclesWidget(Widget):
             bottom_center[1] - radius
         )
 
-    # ===== ЖЕСТ ОДНИМ ПАЛЬЦЕМ =====
+    # ---------- GESTURE ----------
 
     def on_touch_down(self, touch):
         self.start_touch_y = touch.y
@@ -97,6 +129,8 @@ class TwoCirclesWidget(Widget):
         self.start_touch_y = None
         self.start_offset = None
 
+
+# ==================== MAIN LAYOUT ====================
 
 class MainLayout(FloatLayout):
     def __init__(self, **kwargs):
@@ -123,6 +157,8 @@ class MainLayout(FloatLayout):
         btn_exit.bind(on_release=self.exit_app)
         self.add_widget(btn_exit)
 
+    # ---------- MENU ----------
+
     def open_menu(self, *args):
         layout = BoxLayout(
             orientation="vertical",
@@ -130,7 +166,6 @@ class MainLayout(FloatLayout):
             padding=dp(12)
         )
 
-        # --- Цветовые схемы ---
         btn_yb = ToggleButton(
             text="Yellow / Blue",
             group="colors",
@@ -138,9 +173,7 @@ class MainLayout(FloatLayout):
             size_hint_y=None,
             height=dp(48)
         )
-        btn_yb.bind(
-            on_release=lambda *_: self.circles.set_color_scheme("yb")
-        )
+        btn_yb.bind(on_release=lambda *_: self.circles.set_color_scheme("yb"))
 
         btn_rg = ToggleButton(
             text="Red / Green",
@@ -149,21 +182,10 @@ class MainLayout(FloatLayout):
             size_hint_y=None,
             height=dp(48)
         )
-        btn_rg.bind(
-            on_release=lambda *_: self.circles.set_color_scheme("rg")
-        )
+        btn_rg.bind(on_release=lambda *_: self.circles.set_color_scheme("rg"))
 
         layout.add_widget(btn_yb)
         layout.add_widget(btn_rg)
-
-        # --- Остальные пункты ---
-        btn_settings = Button(
-            text="Settings",
-            size_hint_y=None,
-            height=dp(56),
-            font_size=dp(16)
-        )
-        btn_settings.bind(on_release=self.close_popup)
 
         btn_about = Button(
             text="About",
@@ -173,20 +195,17 @@ class MainLayout(FloatLayout):
         )
         btn_about.bind(on_release=self.show_about)
 
-        layout.add_widget(btn_settings)
         layout.add_widget(btn_about)
 
         self.menu_popup = Popup(
             title="Menu",
             content=layout,
             size_hint=(None, None),
-            size=(dp(320), dp(340))
+            size=(dp(320), dp(300))
         )
         self.menu_popup.open()
 
-    def close_popup(self, *args):
-        if hasattr(self, "menu_popup"):
-            self.menu_popup.dismiss()
+    # ---------- ABOUT ----------
 
     def show_about(self, *args):
         if hasattr(self, "menu_popup"):
@@ -205,25 +224,46 @@ class MainLayout(FloatLayout):
             valign="middle",
             text_size=(dp(360), None)
         )
-
         label.bind(
             texture_size=lambda inst, size: setattr(inst, "height", size[1])
         )
 
-        popup = Popup(
+        Popup(
             title="About",
             content=label,
             size_hint=(None, None),
             size=(dp(420), dp(300))
-        )
-        popup.open()
+        ).open()
+
+    # ---------- EXIT ----------
 
     def exit_app(self, *args):
+        self.circles.save_offset()
         App.get_running_app().stop()
 
 
+# ==================== APP ====================
+
 class MyApp(App):
     def build(self):
+        self.config = ConfigParser()
+
+        self.config_path = os.path.join(self.user_data_dir, "app.ini")
+        self.config.read(self.config_path)
+
+        # --- корректная инициализация ---
+        if not self.config.has_section("color"):
+            self.config.add_section("color")
+        if not self.config.has_option("color", "scheme"):
+            self.config.set("color", "scheme", "yb")
+
+        if not self.config.has_section("circles"):
+            self.config.add_section("circles")
+        if not self.config.has_option("circles", "offset"):
+            self.config.set("circles", "offset", "0")
+
+        self.config.write()
+
         Window.clearcolor = (0, 0, 0, 1)
         return MainLayout()
 
