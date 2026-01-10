@@ -11,6 +11,7 @@ from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.resources import resource_find
 from kivy.config import ConfigParser
+from kivy.uix.image import Image
 
 import os
 import math
@@ -156,6 +157,20 @@ class MainLayout(FloatLayout):
         )
         btn_exit.bind(on_release=self.exit_app)
         self.add_widget(btn_exit)
+
+        logo = Image(
+            source="logo.png",
+            size_hint=(None, None),
+            size=(dp(192), dp(192)),
+            pos_hint={
+                "center_x": 0.5,
+                "top": 1
+            },
+            allow_stretch=False,
+            keep_ratio=True
+        )
+        
+        self.add_widget(logo)
 
     # ---------- MENU ----------
 
