@@ -161,7 +161,7 @@ class MainLayout(FloatLayout):
         logo = Image(
             source="logo.png",
             size_hint=(None, None),
-            size=(dp(192), dp(192)),
+            size=(dp(56), dp(56)),
             pos_hint={
                 "center_x": 0.5,
                 "top": 1
