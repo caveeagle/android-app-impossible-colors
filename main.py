@@ -370,12 +370,12 @@ class MainLayout(FloatLayout):
         label.bind(texture_size=lambda inst, size: setattr(inst, "height", size[1]))
         content.add_widget(label)
     
-        # ----- картинка внизу -----
+        # ----- логотип внизу (по центру) -----
         logo = Image(
             source="logo.png",
             size_hint_y=None,
-            size=(dp(56), dp(56)),
-            allow_stretch=False,
+            height=dp(56),
+            allow_stretch=True,
             keep_ratio=True
         )
         content.add_widget(logo)
@@ -385,23 +385,37 @@ class MainLayout(FloatLayout):
     
         scroll.add_widget(content)
     
-        Popup(
+        # ---- контейнер с кнопкой Back ----
+        root = BoxLayout(orientation="vertical")
+    
+        popup = Popup(
             title="About",
-            content=scroll,
-            size_hint=(0.98, 0.98),
-        ).open()  
-        
+            size_hint=(0.75, 0.75)
+        )
+    
+        btn_back = Button(
+            text="Back",
+            size_hint_y=None,
+            height=dp(48)
+        )
+        btn_back.bind(on_release=lambda *_: popup.dismiss())
+    
+        root.add_widget(scroll)
+        root.add_widget(btn_back)
+    
+        popup.content = root
+        popup.open()
+            
     # ---------- INFO (SCROLL + MARKUP) ----------
 
     def show_info(self, *args):
         if hasattr(self, "menu_popup"):
             self.menu_popup.dismiss()
-
-        # В файле можно выделять жирным так: [b]Заголовок[/b]
-        # Для этого здесь включён markup=True
-        text = read_text_resource("info.txt", "colors_info.txt not found")
-
+    
+        text = read_text_resource("info.txt", "info.txt not found")
+    
         scroll = ScrollView(do_scroll_x=False)
+    
         label = Label(
             text=text,
             markup=True,
@@ -409,22 +423,36 @@ class MainLayout(FloatLayout):
             valign="top",
             size_hint_y=None
         )
-
+    
         def _update_wrap(*_):
-            label.text_size = (max(0, scroll.width - dp(20)), None)
-
+            label.text_size = (max(0, scroll.width - dp(24)), None)
+    
         label.bind(texture_size=lambda inst, size: setattr(inst, "height", size[1]))
         scroll.bind(width=_update_wrap)
         _update_wrap()
-
+    
         scroll.add_widget(label)
-
-        Popup(
-            title="Info",
-            content=scroll,
-            size_hint=(0.95, 0.95),
-        ).open()
-
+    
+        root = BoxLayout(orientation="vertical")
+    
+        popup = Popup(
+            title="Impossible Colors (Forbidden Colors)",
+            size_hint=(0.9, 0.9)
+        )
+    
+        btn_back = Button(
+            text="Back",
+            size_hint_y=None,
+            height=dp(48)
+        )
+        btn_back.bind(on_release=lambda *_: popup.dismiss())
+    
+        root.add_widget(scroll)
+        root.add_widget(btn_back)
+    
+        popup.content = root
+        popup.open()
+    
     # ---------- EXIT ----------
 
     def exit_app(self, *args):

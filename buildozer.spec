@@ -8,7 +8,7 @@ package.domain = org.caveeagle
 
 source.dir = .
 
-source.include_exts = py,kv,png,jpg,txt
+source.include_exts = py,kv,png,jpg,txt,json
 
 requirements = python3,kivy
 
@@ -16,7 +16,7 @@ orientation = portrait
 
 fullscreen = 1
 
-version = 1.3.2
+version = 1.3.4
 
 author = caveeagle
 
