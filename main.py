@@ -337,8 +337,7 @@ class MainLayout(FloatLayout):
         self.colors_popup = Popup(
             title="Colors",
             content=layout,
-            size_hint=(None, None),
-            size=(dp(360), dp(320))
+            size_hint=(0.6, 0.85)
         )
         self.colors_popup.open()
 
