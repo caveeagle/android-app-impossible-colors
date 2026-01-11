@@ -302,15 +302,27 @@ class MainLayout(FloatLayout):
     def open_colors_submenu(self, *args):
         if hasattr(self, "menu_popup"):
             self.menu_popup.dismiss()
-
+    
         app = App.get_running_app()
-
-        layout = BoxLayout(
+    
+        # Корень попапа
+        root = BoxLayout(
             orientation="vertical",
             spacing=dp(10),
             padding=dp(12)
         )
-
+    
+        # ScrollView — область прокрутки
+        scroll = ScrollView(do_scroll_x=False)
+    
+        # Контейнер кнопок внутри ScrollView
+        content = BoxLayout(
+            orientation="vertical",
+            spacing=dp(10),
+            size_hint_y=None
+        )
+        content.bind(minimum_height=content.setter("height"))
+    
         for scheme_id in app.color_schemes_order:
             title = app.color_schemes[scheme_id]["title"]
             btn = ToggleButton(
@@ -321,27 +333,29 @@ class MainLayout(FloatLayout):
                 height=dp(52)
             )
             btn.bind(on_release=lambda _btn, sid=scheme_id: self.circles.set_color_scheme(sid))
-            layout.add_widget(btn)
-            #  End of cycle
-            
+            content.add_widget(btn)
+    
+        scroll.add_widget(content)
+    
+        # Кнопка Back (вне прокрутки)
         btn_back = Button(
             text="Back",
             size_hint_y=None,
-            height=dp(48),
-            font_size=dp(16)
+            height=dp(48)
         )
         btn_back.bind(on_release=lambda *_: self.colors_popup.dismiss())
-        
-        layout.add_widget(btn_back)        
-        
+    
+        root.add_widget(scroll)
+        root.add_widget(btn_back)
+    
         self.colors_popup = Popup(
             title="Colors",
-            content=layout,
-            size_hint=(0.6, 0.85)
+            content=root,
+            size_hint=(0.6, 0.7)
         )
         self.colors_popup.open()
-
-    # ---------- ABOUT ----------
+    
+        # ---------- ABOUT ----------
 
     def show_about(self, *args):
         if hasattr(self, "menu_popup"):
